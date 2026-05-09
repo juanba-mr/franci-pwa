@@ -1,0 +1,101 @@
+{
+  "name": "Cliente",
+  "type": "object",
+  "properties": {
+    "dni": {
+      "type": "string",
+      "description": "N\u00famero de DNI del cliente"
+    },
+    "nombre": {
+      "type": "string",
+      "description": "Nombre completo del cliente"
+    },
+    "telefono": {
+      "type": "string",
+      "description": "Tel\u00e9fono del cliente"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email del cliente"
+    },
+    "polizas": {
+      "type": "array",
+      "description": "Lista de p\u00f3lizas del cliente",
+      "items": {
+        "type": "object",
+        "properties": {
+          "numero_poliza": {
+            "type": "string"
+          },
+          "compania": {
+            "type": "string",
+            "description": "Nombre de la compa\u00f1\u00eda aseguradora"
+          },
+          "compania_logo": {
+            "type": "string",
+            "description": "URL del logo de la compa\u00f1\u00eda"
+          },
+          "tipo_seguro": {
+            "type": "string",
+            "description": "RCA, Todo Riesgo, AP Laboral, Hogar, Vida, etc."
+          },
+          "vehiculo": {
+            "type": "string",
+            "description": "Marca y modelo del veh\u00edculo (si aplica)"
+          },
+          "patente": {
+            "type": "string",
+            "description": "Patente del veh\u00edculo (si aplica)"
+          },
+          "vigencia_desde": {
+            "type": "string",
+            "format": "date"
+          },
+          "vigencia_hasta": {
+            "type": "string",
+            "format": "date"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "vigente",
+              "vencida",
+              "por_vencer"
+            ],
+            "default": "vigente"
+          },
+          "estado_pago": {
+            "type": "string",
+            "enum": [
+              "al_dia",
+              "por_vencer",
+              "vencido"
+            ],
+            "default": "al_dia"
+          },
+          "cuota_actual": {
+            "type": "number"
+          },
+          "proximo_vencimiento": {
+            "type": "string",
+            "format": "date"
+          },
+          "asistencia_telefono": {
+            "type": "string",
+            "description": "N\u00famero 0800 de asistencia mec\u00e1nica"
+          },
+          "carnet_digital_url": {
+            "type": "string"
+          },
+          "cupon_pago_url": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "dni",
+    "nombre"
+  ]
+}

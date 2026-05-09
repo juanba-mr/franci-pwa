@@ -1,0 +1,37 @@
+{
+  "name": "Mensaje",
+  "type": "object",
+  "properties": {
+    "cliente_dni": {
+      "type": "string",
+      "description": "DNI del cliente destinatario"
+    },
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo del mensaje"
+    },
+    "contenido": {
+      "type": "string",
+      "description": "Contenido del mensaje en voseo argentino"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "vencimiento",
+        "info",
+        "promo",
+        "alerta"
+      ],
+      "default": "info"
+    },
+    "leido": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "cliente_dni",
+    "titulo",
+    "contenido"
+  ]
+}
