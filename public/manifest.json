@@ -1,0 +1,21 @@
+{
+  "name": "Hermes Seguros",
+  "short_name": "Hermes",
+  "description": "Panel de gestión y visualización de pólizas de seguro.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/faviconV2.png",
+      "sizes": "90x90",
+      "type": "image/png"
+    },
+    {
+      "src": "/faviconV2-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

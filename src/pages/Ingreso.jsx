@@ -20,13 +20,11 @@ export default function Ingreso() {
       return;
     }
 
-
-
     setLoading(true);
 
     try {
       // Le pegamos a nuestro Backend en FastAPI
-      const response = await fetch(`http://${window.location.hostname}:8000/api/login`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -44,15 +42,20 @@ export default function Ingreso() {
       const data = await response.json();
 
       if (data.success) {
+
+        // Guardamos el pase digital (token) y los datos del usuario en el navegador
+        localStorage.setItem('hermes_token', data.token);
+        localStorage.setItem('hermes_user', JSON.stringify(data.usuario));
+        // ----------------------------------------
+
         if (data.tipo_usuario === 'admin') {
           // Si es empleado, lo mandamos al panel de administración
           toast.success(`¡Hola, ${data.usuario.nombre}! (Modo Admin)`);
-          // A futuro podemos guardar su "rol" (SUPERADMIN) en localStorage para habilitar/deshabilitar botones
           navigate('/admin');
         } else {
           // Si es cliente normal, al dashboard
           toast.success(`¡Hola, ${data.usuario.nombre.split(' ')[0]}!`);
-          navigate(`/dashboard?dni=${data.usuario.dni}`);
+          navigate(`/dashboard`);
         }
       }
 

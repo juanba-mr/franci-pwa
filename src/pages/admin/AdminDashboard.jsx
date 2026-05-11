@@ -12,9 +12,10 @@ export default function AdminDashboard() {
     queryKey: ['admin-stats'],
     queryFn: async () => {
       const token = localStorage.getItem('hermes_token');
-      const res = await fetch(`http://${window.location.hostname}:8000/api/admin/stats`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/stats`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       if (!res.ok) throw new Error('Error al cargar estadísticas');

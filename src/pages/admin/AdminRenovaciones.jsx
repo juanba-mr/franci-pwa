@@ -15,9 +15,10 @@ export default function AdminRenovaciones() {
     queryKey: ['admin-renovaciones'],
     queryFn: async () => {
       const token = localStorage.getItem('hermes_token');
-      const res = await fetch(`http://${window.location.hostname}:8000/api/admin/renovaciones`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/renovaciones`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       if (!res.ok) throw new Error('Error al cargar renovaciones');
@@ -91,7 +92,7 @@ export default function AdminRenovaciones() {
 
     try {
       const token = localStorage.getItem('hermes_token');
-      const res = await fetch(`http://${window.location.hostname}:8000/api/admin/disparar-alerta/${idReal}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/disparar-alerta/${idReal}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

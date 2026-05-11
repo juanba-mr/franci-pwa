@@ -10,16 +10,16 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 export default function Dashboard() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const dni = urlParams.get('dni');
+  const savedUser = JSON.parse(localStorage.getItem('hermes_user') || '{}');
+  const dni = savedUser.dni;
 
   // Llamada REAL a tu base de datos Neon mediante FastAPI
   const { data: cliente, isLoading: loadingCliente } = useQuery({
     queryKey: ['cliente', dni],
     queryFn: async () => {
-      // Reemplazá 'http://127.0.0.1:8000/api/clientes/${dni}' por esto:
       const token = localStorage.getItem('hermes_token');
-      const res = await fetch(`http://${window.location.hostname}:8000/api/clientes/${dni}`, {
+      // La URL ahora usa el dni que sacamos del localStorage 
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/clientes/${dni}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -28,7 +28,7 @@ export default function Dashboard() {
       if (!res.ok) throw new Error('Error al traer los datos');
       return res.json();
     },
-    enabled: !!dni,
+    enabled: !!dni, // Solo se ejecuta si hay un DNI 
   });
 
   // 2. FUNCIÓN MÁGICA: Activar Notificaciones Push
@@ -78,7 +78,7 @@ export default function Dashboard() {
 
       // 5. Enviamos la suscripción al Backend
       const token = localStorage.getItem('hermes_token');
-      const res = await fetch(`http://${window.location.hostname}:8000/api/notificaciones/suscribir`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/notificaciones/suscribir`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

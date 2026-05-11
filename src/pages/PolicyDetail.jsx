@@ -42,7 +42,7 @@ export default function PolicyDetail() {
     queryKey: ['cliente', dni],
     queryFn: async () => {
       const token = localStorage.getItem('hermes_token');
-      const res = await fetch(`http://${window.location.hostname}:8000/api/clientes/${dni}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/clientes/${dni}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

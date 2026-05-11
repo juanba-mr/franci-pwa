@@ -19,9 +19,10 @@ export default function AdminClientes() {
     queryKey: ['admin-clientes'],
     queryFn: async () => {
       const token = localStorage.getItem('hermes_token');
-      const res = await fetch(`http://${window.location.hostname}:8000/api/admin/clientes`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/clientes`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       if (!res.ok) throw new Error('Error al cargar clientes');
@@ -218,7 +219,7 @@ function ClienteDetail({ cliente }) {
     queryKey: ['cliente-detalle', cliente.dni],
     queryFn: async () => {
       const token = localStorage.getItem('hermes_token');
-      const res = await fetch(`http://${window.location.hostname}:8000/api/clientes/${cliente.dni}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/clientes/${cliente.dni}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
