@@ -5,10 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function EmergencySection({ polizas }) {
   const [open, setOpen] = useState(false);
 
+  // Filtramos las pólizas para obtener solo las que tienen teléfono de asistencia
   const asistencias = polizas
     ?.filter(p => p.asistencia_telefono)
     ?.map(p => ({ compania: p.compania, telefono: p.asistencia_telefono })) || [];
 
+  // Si el cliente no tiene pólizas con asistencia, no mostramos el botón
   if (asistencias.length === 0) return null;
 
   return (

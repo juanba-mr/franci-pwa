@@ -1,16 +1,12 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Shield, ArrowRight, Loader2, LayoutDashboard } from 'lucide-react';
+import { Shield, ArrowRight, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
-// DNIs de empleados mock (en producción reemplazar con entidad real)
-const EMPLEADOS_MOCK = ['99000001', '99000002', '99000003'];
 
 export default function Ingreso() {
   const [dni, setDni] = useState('');
@@ -24,20 +20,46 @@ export default function Ingreso() {
       return;
     }
 
-    // Verificar si es empleado
-    if (EMPLEADOS_MOCK.includes(dni.trim())) {
-      navigate('/admin');
-      return;
-    }
+
 
     setLoading(true);
-    const clientes = await db.entities.Cliente.filter({ dni: dni.trim() });
-    setLoading(false);
-    if (clientes.length === 0) {
-      toast.error('No encontramos un cliente con ese DNI');
-      return;
+
+    try {
+      // Le pegamos a nuestro Backend en FastAPI
+      const response = await fetch(`http://${window.location.hostname}:8000/api/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ dni: dni.trim() })
+      });
+
+      setLoading(false);
+
+      if (!response.ok) {
+        // Si el backend devuelve 404 o 500, lanzamos error
+        throw new Error('No encontramos un cliente con ese DNI o está inactivo');
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        if (data.tipo_usuario === 'admin') {
+          // Si es empleado, lo mandamos al panel de administración
+          toast.success(`¡Hola, ${data.usuario.nombre}! (Modo Admin)`);
+          // A futuro podemos guardar su "rol" (SUPERADMIN) en localStorage para habilitar/deshabilitar botones
+          navigate('/admin');
+        } else {
+          // Si es cliente normal, al dashboard
+          toast.success(`¡Hola, ${data.usuario.nombre.split(' ')[0]}!`);
+          navigate(`/dashboard?dni=${data.usuario.dni}`);
+        }
+      }
+
+    } catch (error) {
+      setLoading(false);
+      toast.error(error.message || 'Hubo un error de conexión');
     }
-    navigate(`/dashboard?dni=${dni.trim()}`);
   };
 
   return (

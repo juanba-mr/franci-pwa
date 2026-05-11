@@ -1,7 +1,4 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import React from 'react';
-
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -26,8 +23,12 @@ const tipoIcons = {
 };
 
 function formatDate(dateStr) {
-  if (!dateStr) return '-';
-  return format(new Date(dateStr), "d 'de' MMMM, yyyy", { locale: es });
+  if (!dateStr || dateStr === 'S/D' || dateStr === '-') return '-';
+  try {
+    return format(new Date(dateStr), "d 'de' MMMM, yyyy", { locale: es });
+  } catch {
+    return dateStr;
+  }
 }
 
 export default function PolicyDetail() {
@@ -36,13 +37,24 @@ export default function PolicyDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const dni = urlParams.get('dni');
 
-  const { data: clientes, isLoading } = useQuery({
+  // Hacemos el fetch a tu backend de FastAPI real
+  const { data: cliente, isLoading } = useQuery({
     queryKey: ['cliente', dni],
-    queryFn: () => db.entities.Cliente.filter({ dni }),
+    queryFn: async () => {
+      const token = localStorage.getItem('hermes_token');
+      const res = await fetch(`http://${window.location.hostname}:8000/api/clientes/${dni}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!res.ok) throw new Error('Error al traer los datos');
+      return res.json();
+    },
     enabled: !!dni,
   });
 
-  const cliente = clientes?.[0];
+  // Buscamos la póliza correcta usando el índice que nos llega por la URL
   const poliza = cliente?.polizas?.[parseInt(index)];
   const Icon = tipoIcons[poliza?.tipo_seguro] || Shield;
 
@@ -105,8 +117,9 @@ export default function PolicyDetail() {
           <InfoCard label="Tipo de Seguro" value={poliza.tipo_seguro} icon={Shield} />
           {poliza.vehiculo && <InfoCard label="Vehículo" value={poliza.vehiculo} icon={Car} />}
           {poliza.patente && <InfoCard label="Patente" value={poliza.patente} icon={FileText} />}
-          <InfoCard label="Vigencia Desde" value={formatDate(poliza.vigencia_desde)} icon={Calendar} />
           <InfoCard label="Vigencia Hasta" value={formatDate(poliza.vigencia_hasta)} icon={Calendar} />
+
+          {/* Si tuviéramos cuota y vencimiento en la DB, se mostrarían acá */}
           {poliza.cuota_actual && (
             <InfoCard label="Cuota Actual" value={`$${poliza.cuota_actual.toLocaleString()}`} icon={CreditCard} />
           )}
@@ -133,39 +146,31 @@ export default function PolicyDetail() {
 
         {/* Document Actions */}
         <div className="space-y-2.5">
-          {poliza.carnet_digital_url && (
-            <a
-              href={poliza.carnet_digital_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 bg-card border border-border rounded-2xl p-4 active:bg-muted transition-colors"
-            >
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Download className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground text-sm">Descargar Carnet Digital</p>
-                <p className="text-xs text-muted-foreground">Tu credencial de seguro</p>
-              </div>
-            </a>
-          )}
+          <button
+            className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl p-4 active:bg-muted transition-colors"
+            onClick={() => alert('Próximamente disponible')}
+          >
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Download className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold text-foreground text-sm">Descargar Carnet Digital</p>
+              <p className="text-xs text-muted-foreground">Tu credencial de seguro</p>
+            </div>
+          </button>
 
-          {poliza.cupon_pago_url && (
-            <a
-              href={poliza.cupon_pago_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 bg-card border border-border rounded-2xl p-4 active:bg-muted transition-colors"
-            >
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground text-sm">Ver Cupones de Pago</p>
-                <p className="text-xs text-muted-foreground">Consultá tus cuotas pendientes</p>
-              </div>
-            </a>
-          )}
+          <button
+            className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl p-4 active:bg-muted transition-colors"
+            onClick={() => alert('Próximamente disponible')}
+          >
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <CreditCard className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold text-foreground text-sm">Ver Cupones de Pago</p>
+              <p className="text-xs text-muted-foreground">Consultá tus cuotas pendientes</p>
+            </div>
+          </button>
         </div>
       </motion.div>
 
@@ -176,9 +181,9 @@ export default function PolicyDetail() {
 
 function InfoCard({ label, value, icon: Icon }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-3.5">
+    <div className="bg-card border border-border rounded-xl p-3.5 flex flex-col justify-center">
       <div className="flex items-center gap-1.5 mb-1.5">
-        <Icon className="w-3 h-3 text-muted-foreground" />
+        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
         <span className="text-xs text-muted-foreground">{label}</span>
       </div>
       <p className="font-semibold text-foreground text-sm">{value || '-'}</p>
