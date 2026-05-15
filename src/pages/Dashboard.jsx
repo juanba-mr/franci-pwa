@@ -8,6 +8,7 @@ import MessageCard from '@/components/dashboard/MessageCard';
 import WhatsAppFAB from '@/components/dashboard/WhatsAppFAB';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import BotonAyuda from '@/components/BotonAyuda';
 
 export default function Dashboard() {
   const savedUser = JSON.parse(localStorage.getItem('hermes_user') || '{}');
@@ -192,6 +193,9 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Agregá el botón al final, justo antes de WhatsAppFAB */}
+      <BotonAyuda contexto="dashboard" />
 
       <WhatsAppFAB />
     </div>
