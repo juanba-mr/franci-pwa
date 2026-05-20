@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, UserPlus, Loader2, ChevronUp, ChevronDown, Eye, User, Phone, Mail } from 'lucide-react';
+import { Search, UserPlus, Loader2, ChevronUp, ChevronDown, User, Phone, Mail } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -118,10 +118,6 @@ export default function AdminClientes() {
                 <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold">
                   {c.cant_polizas || 0}
                 </span>
-                <Button variant="ghost" size="icon" className="w-7 h-7"
-                  onClick={e => { e.stopPropagation(); window.location.href = `/dashboard?dni=${c.dni}`; }}>
-                  <Eye className="w-4 h-4" />
-                </Button>
               </div>
             </div>
             {selectedCliente?.id === c.id && (
@@ -142,13 +138,12 @@ export default function AdminClientes() {
               <tr className="border-b border-border bg-muted/40">
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort('nombre')}>
                   <span className="flex items-center gap-1">Nombre <SortIcon k="nombre" /></span>
-                </th>
+                </th >
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort('dni')}>
                   <span className="flex items-center gap-1">DNI <SortIcon k="dni" /></span>
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Pólizas</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Estado</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -159,12 +154,11 @@ export default function AdminClientes() {
                     <td className="px-4 py-3"><div className="h-4 bg-muted rounded w-20" /></td>
                     <td className="px-4 py-3"><div className="h-4 bg-muted rounded w-8" /></td>
                     <td className="px-4 py-3"><div className="h-4 bg-muted rounded w-24" /></td>
-                    <td className="px-4 py-3" />
                   </tr>
                 ))
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="h-24 text-center text-muted-foreground">
+                  <td colSpan={4} className="h-24 text-center text-muted-foreground">
                     No se encontraron clientes.
                   </td>
                 </tr>
@@ -183,12 +177,6 @@ export default function AdminClientes() {
                       <div className={`h-2 w-2 rounded-full ${c.estado === 'Activo' ? 'bg-green-500' : 'bg-red-500'}`} />
                       <span className="text-sm text-muted-foreground">{c.estado}</span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button variant="ghost" size="sm" className="gap-1.5 text-xs"
-                      onClick={e => { e.stopPropagation(); window.location.href = `/dashboard?dni=${c.dni}`; }}>
-                      <Eye className="w-3.5 h-3.5" /> Ver Perfil
-                    </Button>
                   </td>
                 </tr>
               ))}
@@ -234,7 +222,7 @@ function ClienteDetail({ cliente }) {
       <div className="flex justify-center items-center py-10">
         <Loader2 className="animate-spin text-primary" />
       </div>
-    )
+    );
   }
 
   return (
@@ -260,12 +248,7 @@ function ClienteDetail({ cliente }) {
           </a>
         )}
       </div>
-      <div className="mb-4">
-        <Button variant="outline" size="sm" className="w-full gap-2 text-xs"
-          onClick={() => window.location.href = `/dashboard?dni=${cliente.dni}`}>
-          <Eye className="w-3.5 h-3.5" /> Ver Perfil del Cliente
-        </Button>
-      </div>
+
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Pólizas</p>
       <div className="space-y-2">
         {(!clienteCompleto?.polizas || clienteCompleto.polizas.length === 0) ? (
