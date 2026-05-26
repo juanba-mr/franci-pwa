@@ -146,19 +146,36 @@ export default function PolicyDetail() {
 
         {/* Document Actions */}
         <div className="space-y-2.5">
-          <button
-            className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl p-4 active:bg-muted transition-colors"
-            onClick={() => alert('Próximamente disponible')}
-          >
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Download className="w-5 h-5 text-primary" />
-            </div>
-            <div className="text-left">
-              <p className="font-semibold text-foreground text-sm">Descargar Carnet Digital</p>
-              <p className="text-xs text-muted-foreground">Tu credencial de seguro</p>
-            </div>
-          </button>
 
+          {/* BOTÓN DE DESCARGA DE PÓLIZA (Diseño Original) */}
+          {poliza.pdf_url ? (
+            <a
+              href={poliza.pdf_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl p-4 active:bg-muted transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Download className="w-5 h-5 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-foreground text-sm">Descargar Póliza</p>
+                <p className="text-xs text-muted-foreground">Documento original en PDF</p>
+              </div>
+            </a>
+          ) : (
+            <div className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl p-4 cursor-not-allowed opacity-60">
+              <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+                <FileText className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-muted-foreground text-sm">PDF no disponible</p>
+                <p className="text-xs text-muted-foreground">Contactá a tu productor para solicitarlo</p>
+              </div>
+            </div>
+          )}
+
+          {/* BOTÓN DE CUPONES DE PAGO */}
           <button
             className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl p-4 active:bg-muted transition-colors"
             onClick={() => alert('Próximamente disponible')}
@@ -172,6 +189,7 @@ export default function PolicyDetail() {
             </div>
           </button>
         </div>
+
       </motion.div>
 
       <WhatsAppFAB />

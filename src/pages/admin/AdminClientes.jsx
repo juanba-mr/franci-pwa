@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, UserPlus, Loader2, ChevronUp, ChevronDown, User, Phone, Mail } from 'lucide-react';
+import { Search, UserPlus, Loader2, ChevronUp, ChevronDown, User, Phone, Mail, Filter, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,13 @@ import VigenciaBadge from '@/components/dashboard/VigenciaBadge';
 export default function AdminClientes() {
   const [search, setSearch] = useState('');
   const [selectedCliente, setSelectedCliente] = useState(null);
+
+  // Estados para los Filtros
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterCompania, setFilterCompania] = useState('');
+  const [filterFormaPago, setFilterFormaPago] = useState('');
+  const [filterVigencia, setFilterVigencia] = useState('');
+
   const [sortKey, setSortKey] = useState('nombre');
   const [sortDir, setSortDir] = useState('asc');
   const [page, setPage] = useState(1);
@@ -30,19 +37,52 @@ export default function AdminClientes() {
     }
   });
 
+  // Extraemos las opciones únicas de la base de datos para llenar los filtros dinámicamente
+  const opcionesCompanias = React.useMemo(() => {
+    const set = new Set();
+    clientes.forEach(c => c.companias?.forEach(comp => set.add(comp)));
+    return Array.from(set).filter(Boolean).sort();
+  }, [clientes]);
+
+  const opcionesFormaPago = React.useMemo(() => {
+    const set = new Set();
+    clientes.forEach(c => c.formas_pago?.forEach(fp => set.add(fp)));
+    return Array.from(set).filter(Boolean).sort();
+  }, [clientes]);
+
+  // Aplicamos Búsqueda y Filtros
   const filtered = React.useMemo(() => {
     const q = search.toLowerCase();
     return clientes
-      .filter(c => c.nombre?.toLowerCase().includes(q) || c.dni?.includes(q))
+      .filter(c => {
+        // 1. Búsqueda por texto (Nombre o DNI)
+        const matchSearch = c.nombre?.toLowerCase().includes(q) || c.dni?.includes(q);
+        if (!matchSearch) return false;
+
+        // 2. Filtro de Compañía
+        if (filterCompania && (!c.companias || !c.companias.includes(filterCompania))) return false;
+
+        // 3. Filtro de Forma de Pago
+        if (filterFormaPago && (!c.formas_pago || !c.formas_pago.includes(filterFormaPago))) return false;
+
+        // 4. Filtro de Vigencia
+        if (filterVigencia) {
+          if (filterVigencia === 'VIGENTE' && (!c.estados_polizas || !c.estados_polizas.includes('VIGENTE'))) return false;
+          if (filterVigencia === 'VENCIDA' && (!c.estados_polizas || !c.estados_polizas.includes('VENCIDA'))) return false;
+        }
+
+        return true;
+      })
       .sort((a, b) => {
         const va = (a[sortKey] || '').toLowerCase();
         const vb = (b[sortKey] || '').toLowerCase();
         return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
       });
-  }, [clientes, search, sortKey, sortDir]);
+  }, [clientes, search, filterCompania, filterFormaPago, filterVigencia, sortKey, sortDir]);
 
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const totalFiltrosActivos = (filterCompania ? 1 : 0) + (filterFormaPago ? 1 : 0) + (filterVigencia ? 1 : 0);
 
   const toggleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -52,6 +92,13 @@ export default function AdminClientes() {
   const SortIcon = ({ k }) => {
     if (sortKey !== k) return <ChevronUp className="w-3 h-3 opacity-20" />;
     return sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />;
+  };
+
+  const resetFilters = () => {
+    setFilterCompania('');
+    setFilterFormaPago('');
+    setFilterVigencia('');
+    setPage(1);
   };
 
   const Pagination = () => totalPages > 1 ? (
@@ -75,14 +122,15 @@ export default function AdminClientes() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Explorador de Clientes</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{clientes.length} clientes en cartera</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{filtered.length} clientes encontrados</p>
         </div>
         <Button className="w-fit" onClick={() => alert('Próximamente')}>
           <UserPlus className="mr-2 h-4 w-4" /> Nuevo Cliente
         </Button>
       </div>
 
-      <div className="flex items-center py-4">
+      {/* BARRA DE BÚSQUEDA Y BOTÓN DE FILTROS */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-2">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -92,10 +140,74 @@ export default function AdminClientes() {
             className="pl-10"
           />
         </div>
+        <Button
+          variant={showFilters || totalFiltrosActivos > 0 ? "default" : "outline"}
+          className="gap-2 shrink-0 w-full sm:w-auto"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Filter className="w-4 h-4" />
+          Filtros {totalFiltrosActivos > 0 && `(${totalFiltrosActivos})`}
+        </Button>
       </div>
 
+      {/* PANEL DESPLEGABLE DE FILTROS */}
+      {showFilters && (
+        <div className="bg-muted/30 border border-border rounded-xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in slide-in-from-top-2">
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+              Compañía
+            </label>
+            <select
+              value={filterCompania}
+              onChange={e => { setFilterCompania(e.target.value); setPage(1); }}
+              className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="">Todas</option>
+              {opcionesCompanias.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+              Forma de Pago
+            </label>
+            <select
+              value={filterFormaPago}
+              onChange={e => { setFilterFormaPago(e.target.value); setPage(1); }}
+              className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="">Cualquiera</option>
+              {opcionesFormaPago.map(fp => <option key={fp} value={fp}>{fp}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+              Estado de Pólizas
+            </label>
+            <select
+              value={filterVigencia}
+              onChange={e => { setFilterVigencia(e.target.value); setPage(1); }}
+              className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="">Todos</option>
+              <option value="VIGENTE">Con pólizas Vigentes</option>
+              <option value="VENCIDA">Con pólizas Vencidas</option>
+            </select>
+          </div>
+
+          {totalFiltrosActivos > 0 && (
+            <div className="sm:col-span-3 flex justify-end mt-1">
+              <Button variant="ghost" size="sm" onClick={resetFilters} className="h-8 gap-2 text-xs text-muted-foreground hover:text-foreground">
+                <X className="w-3.5 h-3.5" /> Limpiar filtros
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Mobile: cards */}
-      <div className="block lg:hidden space-y-2">
+      <div className="block lg:hidden space-y-2 pt-2">
         {isLoading ? (
           Array(5).fill(0).map((_, i) => (
             <div key={i} className="bg-card border border-border rounded-xl p-4 animate-pulse">
@@ -121,7 +233,7 @@ export default function AdminClientes() {
               </div>
             </div>
             {selectedCliente?.id === c.id && (
-              <div className="mt-3 pt-3 border-t border-border">
+              <div className="mt-3 pt-3 border-t border-border" onClick={(e) => e.stopPropagation()}>
                 <ClienteDetail cliente={c} />
               </div>
             )}
@@ -131,8 +243,8 @@ export default function AdminClientes() {
       </div>
 
       {/* Desktop: tabla + panel lateral */}
-      <div className="hidden lg:grid grid-cols-3 gap-5">
-        <div className="col-span-2 bg-card border border-border rounded-xl overflow-hidden">
+      <div className="hidden lg:grid grid-cols-3 gap-5 pt-2">
+        <div className="col-span-2 bg-card border border-border rounded-xl overflow-hidden h-fit">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
@@ -159,7 +271,7 @@ export default function AdminClientes() {
               ) : paginated.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="h-24 text-center text-muted-foreground">
-                    No se encontraron clientes.
+                    No se encontraron clientes con esos filtros.
                   </td>
                 </tr>
               ) : paginated.map(c => (
@@ -187,7 +299,7 @@ export default function AdminClientes() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-5">
+        <div className="bg-card border border-border rounded-xl p-5 sticky top-6 h-fit">
           {selectedCliente ? (
             <ClienteDetail cliente={selectedCliente} />
           ) : (
@@ -250,20 +362,23 @@ function ClienteDetail({ cliente }) {
       </div>
 
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Pólizas</p>
-      <div className="space-y-2">
+      <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
         {(!clienteCompleto?.polizas || clienteCompleto.polizas.length === 0) ? (
           <p className="text-xs text-muted-foreground text-center py-2">No hay pólizas registradas</p>
         ) : (
           clienteCompleto.polizas.map((p, i) => (
-            <div key={i} className="bg-muted/40 rounded-lg p-3">
+            <div key={i} className="bg-muted/40 rounded-lg p-3 border border-border/50">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-xs font-semibold text-foreground">{p.tipo_seguro}</p>
                 <VigenciaBadge estado={p.estado} />
               </div>
               <p className="text-xs text-muted-foreground">{p.compania} · {p.numero_poliza}</p>
               {p.vehiculo && <p className="text-xs text-muted-foreground mt-0.5">{p.vehiculo}</p>}
-              <div className="mt-1.5">
+              <div className="mt-1.5 flex flex-col gap-1.5">
                 <PaymentStatusBadge status={p.estado_pago} />
+                {p.forma_pago && p.forma_pago !== 'S/D' && (
+                  <span className="text-[10px] uppercase font-semibold text-muted-foreground">Pago: {p.forma_pago}</span>
+                )}
               </div>
             </div>
           )))}
