@@ -26,8 +26,3 @@ Hermes Seguros es una plataforma integral de gestión de carteras y pólizas dis
 - **Estado y Fetching:** TanStack Query (React Query)
 - **Iconografía:** Lucide React
 
-## 🚀 Instalación y Uso
-
-1. Clonar el repositorio:
-   ```bash
-   git clone [https://github.com/tu-usuario/hermes-frontend.git](https://github.com/tu-usuario/hermes-frontend.git)
