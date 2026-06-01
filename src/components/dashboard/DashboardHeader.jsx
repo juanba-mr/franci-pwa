@@ -1,10 +1,17 @@
 import React from 'react';
 import { Shield, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function DashboardHeader({ nombre }) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const firstName = nombre?.split(' ')[0] || 'Cliente';
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <div className="px-5 pt-6 pb-4">
@@ -18,7 +25,7 @@ export default function DashboardHeader({ nombre }) {
           </span>
         </div>
         <button
-          onClick={() => navigate('/')}
+          onClick={handleLogout}
           className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
         >
           <LogOut className="w-4 h-4" />

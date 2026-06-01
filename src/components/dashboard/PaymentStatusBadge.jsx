@@ -1,9 +1,9 @@
 import React from 'react';
 
 const statusConfig = {
-  al_dia: { label: 'Al día', dotClass: 'bg-emerald-500', bgClass: 'bg-emerald-500/10', textClass: 'text-emerald-700' },
-  por_vencer: { label: 'Por vencer', dotClass: 'bg-amber-500', bgClass: 'bg-amber-500/10', textClass: 'text-amber-700' },
-  vencido: { label: 'Vencido', dotClass: 'bg-red-500', bgClass: 'bg-red-500/10', textClass: 'text-red-700' },
+  al_dia: { label: 'Cuota al día', dotClass: 'bg-emerald-500', bgClass: 'bg-emerald-500/10', textClass: 'text-emerald-700' },
+  por_vencer: { label: 'Cuota pPor vencer', dotClass: 'bg-amber-500', bgClass: 'bg-amber-500/10', textClass: 'text-amber-700' },
+  vencido: { label: 'Cuota vencida', dotClass: 'bg-red-500', bgClass: 'bg-red-500/10', textClass: 'text-red-700' },
 };
 
 export default function PaymentStatusBadge({ status }) {

@@ -1,20 +1,37 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { MessageCircle } from 'lucide-react';
 
-const WHATSAPP_NUMBER = '5491112345678'; // Replace with Franci's actual number
-const WHATSAPP_MESSAGE = 'Hola Franci, te contacto desde la app de Hermes Asesores.';
-
-export default function WhatsAppFAB() {
-  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
+export default function WhatsAppFAB({ sucursal, nombreCliente, className }) {
+  const numeroWhatsApp = sucursal?.telefono_whatsapp || "5491100000000";
+  const textoMensaje = `Hola! Te contacto desde la aplicación Hermes Seguros. Mi nombre es ${nombreCliente || ''}. Quería hacer una consulta sobre mi cobertura.`;
+  const urlWhatsapp = `https://api.whatsapp.com/send?phone=${numeroWhatsApp}&text=${encodeURIComponent(textoMensaje)}`;
 
   return (
-    <a
-      href={url}
+    <motion.a
+      href={urlWhatsapp}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-5 w-14 h-14 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/30 flex items-center justify-center z-50 active:scale-90 transition-transform duration-150"
+      // Le pasamos className acá para poder controlarlo desde el Dashboard
+      className={`z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-2xl hover:bg-[#20ba56] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2 ${className}`}
+      initial={{ scale: 0, opacity: 0, y: 50 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      exit={{ scale: 0, opacity: 0, y: 50 }}
+      transition={{
+        type: "spring",
+        stiffness: 260,
+        damping: 20,
+        delay: 0.3
+      }}
+      whileHover={{
+        scale: 1.15,
+        rotate: 5
+      }}
+      whileTap={{ scale: 0.95 }}
+      title="Contactar a mi sucursal"
     >
-      <MessageCircle className="w-6 h-6 text-white" />
-    </a>
+      <MessageCircle className="h-8 w-8 fill-white text-[#25D366]" />
+
+    </motion.a>
   );
 }

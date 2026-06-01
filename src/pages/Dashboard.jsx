@@ -100,7 +100,7 @@ export default function Dashboard() {
   };
 
   // Por ahora dejamos los mensajes vacíos hasta conectar la IA
-  const mensajes = [];
+  const mensajes = cliente?.mensajes || [];
   const polizas = cliente?.polizas || [];
 
   if (loadingCliente) {
@@ -194,10 +194,20 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Agregá el botón al final, justo antes de WhatsAppFAB */}
-      <BotonAyuda contexto="dashboard" />
+      {/* Contenedor flotante para botones de acción */}
+      <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 flex flex-col gap-4">
+        {/* Botón de WhatsApp (Arriba) */}
+        <WhatsAppFAB
+          sucursal={cliente?.sucursal}
+          nombreCliente={cliente?.nombre}
+          className="relative" // Relative para que anule cualquier fixed que haya quedado
+        />
 
-      <WhatsAppFAB />
+        {/* Botón de Ayuda (Abajo) */}
+        <BotonAyuda
+          className="relative"
+        />
+      </div>
     </div>
   );
 }

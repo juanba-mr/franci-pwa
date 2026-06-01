@@ -24,9 +24,10 @@ export default function AdminDashboard() {
   });
 
   const handleLogout = () => {
-    // Redirige al login
+    localStorage.removeItem('hermes_token'); // <--- ¡VITAL PARA LIMPIAR LA SESIÓN!
     window.location.href = '/';
   };
+
 
   if (isLoading) {
     return (

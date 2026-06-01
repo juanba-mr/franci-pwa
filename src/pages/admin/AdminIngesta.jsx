@@ -50,16 +50,34 @@ export default function AdminIngesta() {
 
   // Función reutilizable para enviar a la Base de Datos
   const guardarPolizaEnBD = async (datos) => {
+    // 1. Extraemos el token de sesión guardado para validar contra FastAPI
+    const token = localStorage.getItem('hermes_token');
+
+    if (!token) {
+      throw new Error('No se encontró una sesión activa. Por favor, volvé a iniciar sesión.');
+    }
+
+    // 2. Disparamos la petición HTTP inyectando las cabeceras de autorización
     const resSave = await fetch(`${import.meta.env.VITE_API_URL}/save-poliza`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        // INTERNALS: Pasamos el token firmado para que el backend deduzca la sucursal del admin
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(datos)
     });
+
+    // 3. Control de filtros de red y excepciones del backend
+    if (resSave.status === 401) {
+      throw new Error('No tenés permisos para realizar esta operación o tu sesión expiró.');
+    }
 
     if (!resSave.ok) {
       const errorData = await resSave.json();
       throw new Error(errorData.detail || 'Error al guardar la póliza en la base de datos');
     }
+
     return resSave.json();
   };
 

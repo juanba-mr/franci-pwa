@@ -8,7 +8,8 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 
-export default function BotonAyuda({ contexto }) {
+// FIX: Agregamos className en la destructuración de props
+export default function BotonAyuda({ contexto, className }) {
     const [instruccionesNavegador, setInstruccionesNavegador] = useState(null);
 
     useEffect(() => {
@@ -132,8 +133,9 @@ export default function BotonAyuda({ contexto }) {
     return (
         <Sheet>
             <SheetTrigger asChild>
+                {/* FIX: Pasamos el className al botón y limpiamos los fixed viejos */}
                 <button
-                    className="fixed bottom-24 right-6 w-12 h-12 bg-yellow-400 text-black rounded-full flex items-center justify-center shadow-lg hover:bg-yellow-500 hover:scale-110 transition-all z-50 ring-4 ring-yellow-400/20"
+                    className={`w-14 h-14 bg-yellow-400 text-black rounded-full flex items-center justify-center shadow-lg hover:bg-yellow-500 hover:scale-110 transition-all z-50 ring-4 ring-yellow-400/20 ${className || ''}`}
                     aria-label="Ayuda"
                 >
                     <HelpCircle className="w-6 h-6" />
