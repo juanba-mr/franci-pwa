@@ -9,10 +9,16 @@ import WhatsAppFAB from '@/components/dashboard/WhatsAppFAB';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import BotonAyuda from '@/components/BotonAyuda';
+import { Navigate } from 'react-router-dom';
 
 export default function Dashboard() {
   const savedUser = JSON.parse(localStorage.getItem('hermes_user') || '{}');
   const dni = savedUser.dni;
+  const token = localStorage.getItem('hermes_token');
+
+  if (!token || !dni) {
+    return <Navigate to="/" replace />;
+  }
 
   // Llamada REAL a tu base de datos Neon mediante FastAPI
   const { data: cliente, isLoading: loadingCliente } = useQuery({

@@ -1,9 +1,16 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
 import AdminBottomNav from './AdminBottomNav';
 
 export default function AdminLayout() {
+  const token = localStorage.getItem('hermes_token');
+  const user = JSON.parse(localStorage.getItem('hermes_user') || 'null');
+
+  if (!token || !user || user.rol?.toLowerCase() === 'cliente') {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar solo en desktop */}

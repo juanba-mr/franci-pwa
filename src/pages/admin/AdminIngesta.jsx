@@ -110,6 +110,9 @@ export default function AdminIngesta() {
           const file = selectedFiles[i];
           addLog(`[${i + 1}/${selectedFiles.length}] Analizando contenido de: ${file.name}…`);
 
+          // 1. VARIABLE DECLARADA AL INICIO DEL BUCLE
+          let datosIa = null;
+
           try {
             const formData = new FormData();
             formData.append('file', file);
@@ -125,39 +128,64 @@ export default function AdminIngesta() {
             }
 
             const responseData = await res.json();
-            const datosIa = responseData.datos;
 
+            // 2. ASIGNAMOS SIN USAR "const"
+            datosIa = responseData.datos;
+
+            // 3. LÓGICA DE AUTO-CONFIRMACIÓN POR ARCHIVO
             if (autoConfirm) {
-              // Toggle ON: Se guarda directamente
-              addLog(`⚡ Modo Auto-confirmar: Guardando póliza de ${datosIa.nombre || 'Cliente'}…`);
-              await guardarPolizaEnBD(datosIa);
-              procesadosExitoDirecto++;
-              addLog(`✓ Póliza guardada con éxito: ${file.name}`, 'success');
+              if (datosIa.estado_db === 'duplicado') {
+                addLog(`⚠️ Auto-confirmar pausado: La póliza de ${datosIa.nombre || 'Cliente'} es un duplicado exacto. Enviando a revisión manual.`, 'error');
+                tempQueue.push(datosIa);
+              } else {
+                addLog(`⚡ Modo Auto-confirmar: Guardando póliza de ${datosIa.nombre || 'Cliente'}…`);
+                await guardarPolizaEnBD(datosIa);
+                procesadosExitoDirecto++;
+                addLog(`✓ Póliza guardada con éxito: ${file.name}`, 'success');
+              }
             } else {
-              // Toggle OFF: Se guarda en la cola para revisar
+              // Si no hay auto-confirmar, todo va a la cola
               tempQueue.push(datosIa);
               addLog(`→ Póliza de ${datosIa.nombre || 'Cliente'} lista para revisión manual.`);
             }
 
           } catch (fileError) {
             addLog(`❌ Error en archivo ${file.name}: ${fileError.message}`, 'error');
-          }
-        }
 
-        // Definimos qué pasa al terminar de procesar todo el lote de PDFs
+            // Si la IA funcionó pero falló el guardado, lo mandamos a revisión manual para no perderlo
+            if (datosIa) {
+              addLog(`Enviando a ${datosIa.nombre || 'Cliente'} a la cola de revisión manual por seguridad.`);
+              tempQueue.push(datosIa);
+            }
+          }
+        } // <--- FIN DEL BUCLE FOR
+
+        // ==========================================
+        // QUÉ PASA AL TERMINAR DE LEER TODOS LOS PDFs
+        // ==========================================
         if (autoConfirm) {
           setProgress(100);
-          addLog(`📊 Lote terminado. Éxito: ${procesadosExitoDirecto} de ${selectedFiles.length}.`, 'success');
-          setStatus('done');
-          toast.success('Ingesta automática completada.');
+          addLog(`📊 Lote terminado. Éxito: ${procesadosExitoDirecto} de ${selectedFiles.length} guardados directo.`, 'success');
+
+          // Si hubo duplicados o errores, saltamos a la revisión de esos casos puntuales
+          if (tempQueue.length > 0) {
+            setExtractedQueue(tempQueue);
+            setCurrentReviewIndex(0);
+            setStatus('review');
+            toast.warning(`Atención: ${tempQueue.length} póliza(s) requieren revisión manual (Duplicados o errores).`);
+          } else {
+            setStatus('done');
+            toast.success('Ingesta automática completada sin conflictos.');
+          }
         } else {
+          // Flujo manual normal
           if (tempQueue.length === 0) {
             throw new Error('Ningún PDF pudo ser procesado correctamente.');
           }
           setExtractedQueue(tempQueue);
           setCurrentReviewIndex(0);
           setProgress(100);
-          setStatus('review'); // Pasamos a la pantalla de revisión
+          setStatus('review');
           toast.success(`IA finalizada. Tenés ${tempQueue.length} pólizas para revisar.`);
         }
 
@@ -166,55 +194,37 @@ export default function AdminIngesta() {
         // FLUJO 2: EXCEL / CSV MASIVO
         // ==========================================
         const excelFile = selectedFiles[0];
-        // Respetamos tu integración original de Base44
-        const { file_url } = await db.integrations.Core.UploadFile({ file: excelFile });
         setProgress(30);
-        addLog('Archivo subido. Procesando Excel masivo…');
+        addLog('Preparando archivo para subir…');
         setStatus('processing');
 
-        const result = await db.integrations.Core.ExtractDataFromUploadedFile({
-          file_url,
-          json_schema: {
-            type: 'object',
-            properties: {
-              clientes: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    dni: { type: 'string' }, nombre: { type: 'string' }, numero_poliza: { type: 'string' },
-                    tipo_seguro: { type: 'string' }, vigencia_desde: { type: 'string' }, vigencia_hasta: { type: 'string' },
-                    patente: { type: 'string' }, vehiculo: { type: 'string' }
-                  }
-                }
-              }
-            }
-          }
-        });
+        const formData = new FormData();
+        formData.append('file', excelFile);
+        formData.append('compania', compania);
 
-        if (result.status === 'error') throw new Error(result.details);
-        const records = result.output?.clientes || [];
+        const token = localStorage.getItem('hermes_token');
 
-        setProgress(70);
-        addLog(`${records.length} registro(s) encontrados. Guardando en base de datos…`);
-
-        let procesados = 0;
-        for (const rec of records) {
-          if (!rec.dni) continue;
-          const resSave = await fetch(`${import.meta.env.VITE_API_URL}/save-poliza`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              nombre: rec.nombre || 'Sin nombre', dni: String(rec.dni), poliza: String(rec.numero_poliza),
-              tipo_seguro: rec.tipo_seguro || 'Automotor', patente: rec.patente || '', vehiculo: rec.vehiculo || '',
-              vigencia_desde: rec.vigencia_desde, vigencia_hasta: rec.vigencia_hasta, compania: compania
-            })
-          });
-          if (resSave.ok) procesados++;
+        if (!token) {
+          throw new Error('No se encontró una sesión activa. Por favor, volvé a iniciar sesión.');
         }
 
+        addLog('Subiendo y procesando archivo en el servidor masivo…');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/ingesta-masiva`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.detail || 'Error al procesar el archivo masivo');
+        }
+
+        const data = await res.json();
         setProgress(100);
-        addLog(`✓ ${procesados} póliza(s) guardada(s) en Neon DB.`, 'success');
+        addLog(`✓ ${data.procesados} póliza(s) guardada(s) en Neon DB.`, 'success');
         setStatus('done');
         toast.success('Ingesta de Excel completada');
       }
@@ -228,15 +238,25 @@ export default function AdminIngesta() {
 
   // --- CONFIRMACIÓN MANUAL EN CASCADA (Desde la vista de Revisión) ---
   const handleConfirmPDF = async () => {
-    setStatus('saving');
     const itemActual = extractedQueue[currentReviewIndex];
+
+    // ==========================================
+    // TRABA DE SEGURIDAD PARA DUPLICADOS
+    // ==========================================
+    if (itemActual.estado_db === 'duplicado') {
+      const confirmar = window.confirm(
+        "⚠️ Esta póliza ya está cargada en el sistema con esta misma vigencia o una superior.\n\n¿Estás seguro de que querés guardarla igual y sobrescribir los datos actuales?"
+      );
+      if (!confirmar) return; // Si cancela, cortamos la función acá
+    }
+
+    setStatus('saving');
     addLog(`Guardando póliza de ${itemActual.nombre} en la base de datos...`);
 
     try {
       await guardarPolizaEnBD(itemActual);
       addLog(`✓ Póliza de ${itemActual.nombre} guardada con éxito.`, 'success');
 
-      // Si quedan más archivos en la cola, pasamos al siguiente
       if (currentReviewIndex + 1 < extractedQueue.length) {
         setCurrentReviewIndex(prev => prev + 1);
         setStatus('review');
@@ -247,7 +267,7 @@ export default function AdminIngesta() {
       }
     } catch (error) {
       addLog(`Error al guardar: ${error.message}`, 'error');
-      setStatus('review'); // Si falla, nos quedamos en la misma vista para corregir
+      setStatus('review');
     }
   };
 
@@ -281,25 +301,44 @@ export default function AdminIngesta() {
         </div>
 
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm mb-4">
+
+          {/* ========================================== */}
+          {/* CARTEL DINÁMICO DE ESTADO DB                 */}
+          {/* ========================================== */}
+          {dataActual.mensaje_db && (
+            <div className={`p-3 rounded-lg mb-6 font-medium text-sm border ${dataActual.estado_db === 'duplicado' ? 'bg-red-500/10 text-red-600 border-red-500/20' :
+              dataActual.estado_db === 'renovacion' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                'bg-blue-500/10 text-blue-600 border-blue-500/20'
+              }`}>
+              {dataActual.mensaje_db}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.keys(dataActual).map((key) => (
-              <div key={key}>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-2">
-                  {key.replace('_', ' ')}
-                </label>
-                <input
-                  type="text"
-                  value={dataActual[key] || ''}
-                  onChange={(e) => {
-                    const copiaCola = [...extractedQueue];
-                    copiaCola[currentReviewIndex] = { ...dataActual, [key]: e.target.value };
-                    setExtractedQueue(copiaCola);
-                  }}
-                  disabled={status === 'saving'}
-                  className="w-full text-sm border border-border rounded-lg px-3 py-2.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-            ))}
+            {Object.keys(dataActual).map((key) => {
+
+              {/* FILTRO: Ocultamos estos campos para que no creen inputs de texto rústicos */ }
+              if (key === 'estado_db' || key === 'mensaje_db') return null;
+
+              return (
+                <div key={key}>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-2">
+                    {key.replace('_', ' ')}
+                  </label>
+                  <input
+                    type="text"
+                    value={dataActual[key] || ''}
+                    onChange={(e) => {
+                      const copiaCola = [...extractedQueue];
+                      copiaCola[currentReviewIndex] = { ...dataActual, [key]: e.target.value };
+                      setExtractedQueue(copiaCola);
+                    }}
+                    disabled={status === 'saving'}
+                    className="w-full text-sm border border-border rounded-lg px-3 py-2.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              );
+            })}
           </div>
 
           <Button

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Shield, Calendar, CreditCard, Phone,
@@ -36,6 +36,11 @@ export default function PolicyDetail() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const dni = urlParams.get('dni');
+  const token = localStorage.getItem('hermes_token');
+
+  if (!token || !dni) {
+    return <Navigate to="/" replace />;
+  }
 
   // Hacemos el fetch a tu backend de FastAPI real
   const { data: cliente, isLoading } = useQuery({
